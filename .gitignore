@@ -360,3 +360,9 @@ cython_debug/
 instance/*
 !instance/.gitignore
 
+# Documentation project files
+docs/ABOUT.txt
+docs/piliere.txt
+docs/ProjectStructure.txt
+docs/*.txt
+docs/*
