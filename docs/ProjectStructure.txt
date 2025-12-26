@@ -1,0 +1,107 @@
+cistafirma-project/
+├── .env.example            # Vzor pre environment premenné (bez hesiel!)
+├── .gitignore
+├── docker-compose.yml      # Orchestrácia služieb (Web, DB, Redis, Worker, Beat)
+├── Dockerfile
+├── Makefile                # Príkazy pre developerov (napr. "make audit-check")
+├── requirements.txt        # Python závislosti
+├── README.md               # Dokumentácia pre tím
+│
+├── .github/                # CI/CD (Automatické testy a nasadenie)
+│   └── workflows/
+│       └── tests.yml
+│
+├── src/                    # Zdrojový kód (Django Root)
+│   ├── manage.py
+│   │
+│   ├── config/             # Konfigurácia projektu
+│   │   ├── __init__.py
+│   │   ├── settings.py     # Nastavenia (Apps, DB, Security)
+│   │   ├── urls.py         # Hlavný router
+│   │   ├── celery.py       # Nastavenie pre asynchrónne úlohy
+│   │   └── wsgi.py
+│   │
+│   ├── apps/               # DOMÉNOVÁ LOGIKA (Jadro tvojho biznisu)
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── core/           # Spoločné utility
+│   │   │   ├── models.py   # Abstract modely (TimeStampedModel, UUIDModel)
+│   │   │   └── utils.py    # Formátovanie mien, dátumov
+│   │   │
+│   │   ├── users/          # Správa zákazníkov (SaaS logika)
+│   │   │   ├── models.py   # Custom User, SubscriptionPlan
+│   │   │   └── api.py      # Registrácia, Login, API Keys
+│   │   │
+│   │   ├── companies/      # Databáza firiem (zrkadlo ORSR)
+│   │   │   ├── models.py   # Company, Address, LegalForm
+│   │   │   └── services.py # Create/Update logika
+│   │   │
+│   │   ├── registers/      # DATA MINING (Sťahovanie dát)
+│   │   │   ├── scrapers/   # Skripty pre konkrétne zdroje
+│   │   │   │   ├── financna_sprava.py  # Zoznam platiteľov DPH
+│   │   │   │   ├── socialna_poistovna.py
+│   │   │   │   └── orsr_api.py
+│   │   │   └── tasks.py    # Celery úlohy ("Stiahni DPH listinu každé ráno o 3:00")
+│   │   │
+│   │   ├── analysis/       # RISK ENGINE (Tvoj mozog)
+│   │   │   ├── logic.py    # Algoritmus pre scoring (0-100%)
+│   │   │   ├── vat_calc.py # Kalkulačka Split Paymentu (DPH ochrana)
+│   │   │   └── models.py   # RiskScore (história hodnotenia firmy)
+│   │   │
+│   │   ├── compliance/     # DÔKAZY & PDF (Tvoja killer feature)
+│   │   │   ├── models.py   # AuditLog, ComplianceSnapshot (odkaz na PDF súbor)
+│   │   │   ├── generators.py # WeasyPrint logika (HTML -> PDF)
+│   │   │   └── templates/  # Šablóna PDF certifikátu (dizajn)
+│   │   │
+│   │   └── monitoring/     # WATCHDOG (Strážny pes)
+│   │       ├── models.py   # WatchList, Alert (kto sleduje koho)
+│   │       ├── services.py # Logika: "Zmenil sa stav? Pošli mail."
+│   │       └── notifications.py # Odosielanie emailov / SMS
+│   │
+│   ├── static/             # CSS, JS, Images (Logo CistaFirma)
+│   ├── templates/          # HTML Frontend (Dashboard, Landing Page)
+│   └── media/              # Úložisko pre vygenerované PDF reporty
+│       └── audits/         # (napr. 2025/01/26/ico_12345678.pdf)
+│
+└── tests/                  # Automatizované testy (veľmi dôležité pre finančné appky)
+    ├── factories.py        # Generovanie testovacích dát
+    └── test_risk_logic.py  # Test: "Funguje Split Payment výpočet správne?"
+
+
+
+
+Vysvetlenie nových modulov (Prečo som to takto rozdelil?)
+Ako manažér ti vysvetlím, prečo je táto štruktúra lepšia pre tvoj biznis model:
+
+1. apps/analysis (Risk Engine)
+Tu bude "mozog" aplikácie. Oddelil som ho od samotných dát firiem.
+
+Prečo? Firma môže mať v ORSR čistý záznam, ale v analýze vyjde ako riziková (napr. prepojenie na dlžníkov).
+
+Split Payment Logic: Tu bude funkcia, ktorá povie: Input: Faktúra 1200€. Output: Zaplať 1000€ dodávateľovi a 200€ daňovému úradu. Toto je citlivá logika, musí byť na jednom mieste a dobre otestovaná.
+
+2. apps/compliance (Tvoj hlavný produkt)
+Toto je to, čo predávaš – pokojný spánok.
+
+Snapshot (Snímka): Tu sa ukladajú nemenné záznamy. Keď užívateľ klikne "Prever a ulož", systém vytvorí záznam v databáze a vygeneruje PDF, ktoré sa nesmie dať prepísať.
+
+Právna váha: V tejto aplikácii budeme riešiť digitálne podpisy alebo časové pečiatky, aby to obstálo pred súdom.
+
+3. apps/monitoring (Watchdog)
+Oddelené od užívateľov.
+
+Prečo? Monitoring musí byť efektívny. Jeden CronJob (pravidelná úloha) prebehne zoznam všetkých sledovaných IČO naraz (napr. 5000 firiem) a potom rozpošle notifikácie 200 rôznym užívateľom.
+
+Tu budeš nastavovať pravidlá: "Upozorni ma hneď" vs. "Upozorni ma v dennom súhrne".
+
+4. tests/ (Bezpečnosť)
+Pri finančných a právnych nástrojoch si nemôžeme dovoliť chybu.
+
+Ak tvoja appka povie "Firma je čistá" a ona nie je, klient môže mať problém.
+
+Preto budeme písať testy, ktoré simulujú "zlé firmy" a overujú, či ich tvoj systém zachytí.
+
+Tech Stack Upgrade (Pre Senior prístup)
+Celery Beat: Budeš potrebovať nielen Celery (na jednorazové úlohy), ale aj Celery Beat. To je plánovač, ktorý povie: "Je 2:00 ráno, spusti kontrolu dlžníkov Sociálnej poisťovne."
+
+PostgreSQL Triggers (voliteľné): Pre maximálnu bezpečnosť dát môžeme nastaviť databázu tak, aby sa záznam v tabuľke ComplianceSnapshot nedal po uložení zmeniť (WORM - Write Once, Read Many).
