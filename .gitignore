@@ -1,3 +1,8 @@
+# This file tells git which files and directories to ignore.
+# This is a combination of gitignore templates for Python, Django, Node, and more.
+
+.idea/
+
 ### Node template
 # Logs
 logs
@@ -368,3 +373,5 @@ docs/ProjectStructure.txt
 docs/*.txt
 docs/*
 docs/
+
+/.env.prod

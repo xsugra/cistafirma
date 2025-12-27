@@ -1,67 +1,77 @@
+.PHONY: help clean lint format
 
-# DIRECTORIES
-ROOT_DIR:=./
-SRC_DIR:=./src
-VENV_BIN_DIR:="venv/bin"
+# ====================================================================================
+# HELPERS
+# ====================================================================================
 
-VIRTUALENV:=$(shell which virtualenv)
+help:
+	@echo "Makefile for Django development"
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make venv"
+	@echo "      Create a virtual environment and install dependencies"
+	@echo "  make runserver"
+	@echo "      Run the Django development server"
+	@echo "  make migrations"
+	@echo "      Create new database migrations"
+	@echo "  make migrate"
+	@echo "      Apply database migrations"
+	@echo "  make superuser"
+	@echo "      Create a new superuser"
+	@echo "  make test"
+	@echo "      Run the test suite"
+	@echo "  make lint"
+	@echo "      Run the linter"
+	@echo "  make format"
+	@echo "      Format the code"
+	@echo "  make freeze"
+	@echo "      Freeze the current dependencies to requirements.txt"
+	@echo "  make clean"
+	@echo "      Remove temporary files"
 
-REQUIREMENTS:="requirements.txt"
 
-PIP:="$(VENV_BIN_DIR)/pip"
-
-CMD_FROM_VENV:="$. $(VENV_BIN_DIR)/activate; which"
-PYTHON:=$(shell "$(CMD_FROM_VENV)" "python")
-
-hello:
-	@echo "Hello, world!"
-
-# DOCKER
-docker:
-	@docker-compose build
-	@docker-compose up
-
-updocker:
-	@docker-compose up --build --force-recreate
-
-downdocker:
-	@docker compose down
-
-restartdocker:
-	@docker-compose restart
-
+# ====================================================================================
 # DEVELOPMENT
-define create-venv
-python3 -m venv venv
-endef
+# ====================================================================================
 
-venv:
-	@$(create-venv)
-	@$(PIP) install -r $(REQUIREMENTS)
-	@source venv/bin/activate
+VENV_DIR=venv
+PYTHON=$(VENV_DIR)/bin/python
+PIP=$(VENV_DIR)/bin/pip
 
-freeze:
-	@$(PIP) freeze > $(REQUIREMENTS)
+venv: $(VENV_DIR)/bin/activate
+
+$(VENV_DIR)/bin/activate: requirements.txt
+	python3 -m venv $(VENV_DIR)
+	$(PIP) install -r requirements.txt
+	touch $(VENV_DIR)/bin/activate
+
+runserver: venv
+	$(PYTHON) source/manage.py runserver "localhost:8000"
+
+migrations: venv
+	$(PYTHON) source/manage.py makemigrations
+
+migrate: venv
+	$(PYTHON) source/manage.py migrate
+
+superuser: venv
+	$(PYTHON) source/manage.py createsuperuser
+
+test: venv
+	$(PYTHON) source/manage.py test
+
+lint: venv
+	$(PYTHON) -m ruff check .
+
+format: venv
+	$(PYTHON) -m ruff format .
+
+freeze: venv
+	$(PIP) freeze > requirements.txt
 
 clean:
 	@rm -rf .cache
 	@rm -rf htmlcov coverage.xml .coverage
-	@find . -name *.pyc -delete
-	@find . -type d -name __pycache__ -delete
-	@find . -path "*.sqlite3"  -delete
-	@rm -rf venv
-	@rm -rf .venv
-	@rm -rf .tox
-
-# TOOLS & SCRIPTS
-migrations: venv
-	@$(PYTHON) source/manage.py makemigrations
-
-migrate: venv
-	@$(PYTHON) source/manage.py migrate
-
-superuser: venv
-	@$(PYTHON) source/manage.py createsuperuser
-
-runserver: venv
-	@$(PYTHON) source/manage.py runserver "localhost":8000
+	@find . -name "*.pyc" -delete
+	@find . -type d -name "__pycache__" -delete
+	@rm -rf $(VENV_DIR)
