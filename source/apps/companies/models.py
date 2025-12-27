@@ -1,8 +1,14 @@
 import uuid
 from django.db import models
 
+
 # Model adresy pre firmu
 class Address(models.Model):
+    """
+    Model reprezentujúci adresu firmy (tabuľka: companies_address).
+    companies_company 1 : N companies_address
+    Jedna firma má jedno sídlo, na jednej adrese môže sídliť viacero firiem.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -25,8 +31,14 @@ class Address(models.Model):
     def __str__(self):
         return f"{self.street}, {self.city}"
 
+
 # Model Firmy
 class Company(models.Model):
+    """
+    Model reprezentujúci Firmu (tabuľka: companies_company).
+    companies_company 1 : N companies_address
+    Jedna firma má jedno sídlo, na jednej adrese môže sídliť viacero firiem.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -44,8 +56,8 @@ class Company(models.Model):
 
     address = models.ForeignKey(
         Address,
-        on_delete=models.PROTECT,   # Nedovolíme zmazať adresu, ak na nej sídli nejaká firma
-        related_name='companies',   # Umožní získať všetky firmy na danej adrese (address.companies.all())
+        on_delete=models.PROTECT,  # Nedovolíme zmazať adresu, ak na nej sídli nejaká firma
+        related_name='companies',  # Umožní získať všetky firmy na danej adrese (address.companies.all())
         verbose_name="Sídlo"
     )
 
@@ -65,6 +77,3 @@ class Company(models.Model):
 
     def __str__(self):
         return self.name
-
-
-

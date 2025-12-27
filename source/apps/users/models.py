@@ -6,6 +6,11 @@ from django.utils.translation import gettext_lazy as _
 
 # Model pre Subscription Plan
 class SubscriptionPlan(models.Model):
+    """
+    Model reprezentujúci subscription plan (tabuľka: users_subscriptionplan).
+    users_subscriptionplan  1 : N users_user
+    Jeden užívateľ má jeden plán, jeden plán môže mať viacero užívateľov.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -30,6 +35,9 @@ class SubscriptionPlan(models.Model):
 
 # Model manažéra pre používateľa
 class CustomUserManager(BaseUserManager):
+    """
+    Model manažéra pre používateľa.
+    """
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('Emailová adresa je povinná')
@@ -47,6 +55,11 @@ class CustomUserManager(BaseUserManager):
 
 # Model Používateľa
 class User(AbstractBaseUser, PermissionsMixin):
+    """
+    Model reprezentujúci Používateľa (tabuľka: users_user).
+    users_subscriptionplan  1 : N users_user
+    Jeden užívateľ má jeden plán, jeden plán môže mať viacero užívateľov.
+    """
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
